@@ -12,30 +12,50 @@ Finally create a script called combine.py which iterates over the resulting json
 
 prod_id,prod_sku,prod_cat,prod_name
 
+USING threading library muliple thread API calling
 """
 
 import requests
+import threading
+import time
 import json
 
 
-n = 0
-while n < 200:
+def worker(tid, n):
     url = "https://clarksonmsda.org/api/get_product.php?pid="
     url = url + str(n)
-    r = requests.get(url)
-
-    data = json.loads(r.text)
+    rq = requests.get(url)
+    data = json.loads(rq.text)
     if data['data'] is not None:
         # for k, v in data['data'].items():
         #     print("key:"+k+", value:"+str(v))
-        dictionary = {
+        productdictionary = {
             "prod_id":      data['data']['prod_id'],
             "prod_sku":     data['data']['prod_sku'],
             "prod_cat":     data['data']['prod_cat'],
             "prod_name":    data['data']['prod_name']
         }
-        outfilename = "./out/output_" + str(n).rjust(3, '0') + ".json"
-        # print(dictionary)
+        outfilename = "./out/pid_" + str(n).rjust(4, '0') + ".json"
+        # print(productdictionary)
         with open(outfilename, "w") as outfile:
-            json.dump(dictionary, outfile)
+            json.dump(productdictionary, outfile)
+
+
+n = 0
+tid = 0
+tidlist = []  
+start = time.time()
+while tid < 200:
+    # thread pool slot open -  create a new thread
+    w = threading.Thread(name='tid_'+str(tid),
+                         target=worker, args=(tid, n,))
+    w.start()
+    tidlist.append(w)
+    tid += 1
     n += 1
+# print(tidlist)
+
+for t in tidlist:
+    t.join()
+print(tidlist)
+print(time.time() - start)
